@@ -6,7 +6,9 @@ const jwt = require('jsonwebtoken');
 
 const authConfig = require('../../config/auth');
 
-const User = require('../models/User');
+const Usuario = require('../models/Usuario');
+
+const Pessoa = require('../models/Pessoa');
 
 const router = express.Router();
 
@@ -17,51 +19,111 @@ function generateToken(params = {}) {
 }
 
 router.post('/register', async(req, res) => {
-	const {email} = req.body;
+	var verif = 0
+	var { email, senha, nome } = req.query
+	
+    if (email === undefined){
+       email = req.body.email
+       senha = req.body.senha
+	   nome = req.body.nome
+	   cpf = req.body.cpf
+       verif = 1
+	}
+	
+	if(email === "" || email === undefined){
+		return res.status(401).send({error: "Campo E-Mail vazio"})
+	}else if(senha === "" || password === undefined){
+		return res.status(403).send({error: "Campo Senha vazio"})
+	}else if(nome === "" || nome === undefined){
+		return res.status(402).send({error: "Campo Nome vazio"})
+	}else if(cpf === "" || cpf === undefined){
+		return res.status(402).send({error: "Campo Cpf vazio"})
+	}
+
 	try{
-		if(await User.findOne({email})){
-			return res.status(400).send({ error: 'User already exist'});
+
+		if(await Pessoa.findOne({cpf})){
+			return res.status(400).send({ error: 'pessoa ja existe'});
 		}
 
-		const user = await User.create(req.body);
+		if(await Usuario.findOne({email})){
+			return res.status(400).send({ error: 'Usuario ja existe'});
+		}
+
+		var usuario;
+		var pessoa;
+		if (verif){
+			usuario = await Usuario.create(req.body);
+			pessoa = await Pessoa.create(req.body);
+        }else{
+			usuario = await Usuario.create(req.query);
+			pessoa = await Pessoa.create(req.query);
+		}
 		
-		user.password = undefined;
+		usuario.senha = undefined;
+		usuario.pessoa = pessoa.id;
 
 		return res.send({
-			user, 
-			token: generateToken({ id: user.id })
+			usuario, 
+			token: generateToken({ id: usuario.id })
 		});
 	
 	} catch (err){
 		return res.status(400).send({
-			error: 'Registration failed'
+			error: 'Falha no registro'
 		})
 	}
 })
 
 router.post('/authenticate', async (req, res) => {
-	const {email, password} = req.body;
+	var { email, senha } = req.query
+    if (email === undefined && senha === undefined){
+       email = req.body.email
+       senha = req.body.senha
+    }
 
-	const user = await User.findOne({email}).select('+password');
+	const usuario = await Usuario.findOne({email}).select('+senha');
 
-	if(!user){
+	if(!usuario){
 		return res.status(400).send({
-			error: 'User not found'
+			error: 'usuario not found'
 		})
 	}
 
-	if(!await bcrypt.compare(password, user.password)){
+	if(!await bcrypt.compare(senha, usuario.senha)){
 		return res.status(400).send({
-			error: 'Invalid password'
+			error: 'Invalid senha'
 		})
 	}
 
-	user.password = undefined;
+	usuario.senha = undefined;
 
 	res.send({
-		user, 
-		token: generateToken({ id: user.id })
+		usuario, 
+		token: generateToken({ id: usuario.id })
 	});
+
+	return res.status(200);
 })
+
+router.get('/', async (req, res) => {
+    try {
+        const usuarios = await User.find({},{email:1}).sort('email')
+        return res.send({ usuarios })
+
+    } catch (err) {
+        return res.status(400).send({ error: 'Erro em carrega os usuarios'})
+    }
+});
+
+router.get('/:userId', async (req, res) => {
+    try {
+        const usuarios = await User.findById(req.params.userId)
+        return res.send({ usuarios })
+
+    } catch (err) {
+        return res.status(400).send({ error: 'Erro em carrega os usuarios'})
+    }
+});
 
 module.exports = app => app.use('/auth', router);
