@@ -13,25 +13,27 @@ const UsuarioSchema = new mongoose.Schema({
 		required: true,
 		select: false,
 	},
+	senhaResetToken: {
+		type: String,
+		select: false,
+	},
+	senhaResetExpires: {
+		type: Date,
+		select: false,
+	},
 	pessoa: {
 		type: mongoose.Schema.Types.ObjectId,
 		ref: 'Pessoa',
 	},
-	projetos: [{
-		type: mongoose.Schema.Types.ObjectId,
-		ref: 'ItemProjetoUsuario',
-		default: [],
-	}],
 	permissao: {
 		type: Number,
-		/* 1 - Paulo Passivo, 2 - Admin*/
+		default: 1
+		/* 1 - Aluno, 2 - Admin*/
+	},
+	status: {
+		type: Number,
+		default: 1
 	}
-})
-
-UsuarioSchema.pre('save', async function(next){
-	const hash = await bcrypt.hash(this.senha, 10);
-	this.senha = hash;
-	next();
 })
 
 const Usuario = mongoose.model('Usuario', UsuarioSchema);
