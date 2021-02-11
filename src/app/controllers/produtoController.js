@@ -7,6 +7,16 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
+router.get('/', async (req, res) => {
+    try {
+      const produtos = await Produto.find();
+      return res.send({ produtos })
+
+    } catch (err) {
+      return res.status(400).send({ error: 'Erro em carregar os produtos'})
+    }
+});
+
 router.post('/', async (req, res) => {
 
     var { nome, qtdEstoque, preco } = req.query

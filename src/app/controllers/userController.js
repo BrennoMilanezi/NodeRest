@@ -3,6 +3,9 @@ const authMiddleware = require('../middlewares/auth');
 
 const Usuario = require('../models/usuario');
 const Pessoa = require('../models/pessoa');
+const Compra = require('../models/compra');
+const Produto = require('../models/produto');
+const itemCompra = require('../models/itemCompra');
 
 const router = express.Router();
 
@@ -89,6 +92,29 @@ router.put('/:usuarioId', async(req, res) => {
 		})
 	}
 })
+
+router.get('/:usuarioId/compras', async (req, res) => {
+  try {
+
+    const compras = await Compra.find({usuario: req.params.usuarioId}).populate('itens_compra');
+    await Promise.all(compras.map(async (compra) => {
+
+      await Promise.all(compra.itens_compra.map(async (item, index) => {
+          const item_compra = await itemCompra.findById(item);
+          if(item_compra){
+              const produto = await Produto.findById(item_compra.produto);
+              item_compra.produto = produto
+              compra.itens_compra[index] = item_compra;
+          }
+      }));
+
+    }));
+    return res.send({ compras })
+
+  } catch (err) {
+    return res.status(400).send({ error: 'Erro em carrega o usuario'})
+  }
+});
 
 
 router.delete('/:usuarioId', async (req, res) => {

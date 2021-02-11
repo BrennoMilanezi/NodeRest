@@ -108,10 +108,28 @@ router.post('/', async (req, res) => {
 
 	} catch (err){
 		return res.status(400).send({
-			error: 'Falha no registro'+err
+			error: 'Falha no registro'
 		})
 	}
     
 });
+
+router.delete('/:compraId', async (req, res) => {
+    try {
+  
+      const compra = await Compra.findById(req.params.compraId);
+
+      await Promise.all(compra.itens_compra.map(async (item, index) => {
+        await itemCompra.findByIdAndDelete(item);
+      }));
+  
+      await Compra.findByIdAndDelete(req.params.compraId);
+  
+      return res.send({ })
+  
+    } catch (err) {
+        return res.status(400).send({ error: 'Erro em desativar o usuário'})
+    }  
+  });
 
 module.exports = app => app.use('/compras', router);
